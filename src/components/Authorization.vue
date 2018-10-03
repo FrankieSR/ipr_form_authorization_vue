@@ -3,8 +3,8 @@
 
         <Loader :visible = "loaderVisible"/>
 
-        <form class = "authorization__form" 
-              method="post" 
+        <form class = "authorization__form"
+              method="post"
               @submit.prevent="getAuth">
 
             <div class="authorization__input-group">
@@ -43,6 +43,8 @@
 </template>
 
 <script>
+let empty = '';
+
 import axios from 'axios';
 import Vue from 'vue';
 import router from 'vue-router';
@@ -54,42 +56,72 @@ export default {
 	props: {},
 	data: function() {
 		return {
-			username: '',
-			pass: '',
-			isAuth: 0,
-			isError: 0,
-			loaderVisible: 0,
+			username: empty, // user name
+			pass: empty, // user pass
+			isAuth: 0, // если авторизация не верная
+			isError: 0, // если данные авторизации не верные
+			loaderVisible: 0, // отображение лоадера
 		};
 	},
 	methods: {
-		getAuth: function() {
+		getAuth: async function() {
+			let _response, _promise;
+			this.isError = 0;
 			this.loaderVisible = 1;
-			axios
-				.post('http://frankiesr.getsandbox.com/login', {
-					username: this.username,
-					pass: this.pass,
-				})
-				.then(response => {
-					let promise = new Promise((resolve, reject) => {});
-					if (response.data.Auth === 'Allow') {
+			_response = await axios.post('http://frankiesr.getsandbox.com/login', {
+				username: this.username,
+				pass: this.pass,
+			});
+
+			_promise = new Promise((resolve, reject) => {
+				_response.data.Auth === 'Allow' ? resolve('success') : reject('failure');
+			});
+
+			_promise
+				.then(
+					success => {
 						this.isAuth = 1;
 						this.loaderVisible = 0;
 						localStorage.username = this.username;
-						setTimeout(() => {
-							this.$router.push('/success');
-						}, 900);
-					} else {
+						this.routeToPage();
+					},
+					failure => {
 						this.isAuth = 0;
 						this.isError = 1;
-						this.username = '';
-						this.pass = '';
 						this.loaderVisible = 0;
+						this.clearUsersData();
 					}
+				)
+				.catch(erorr => {
+					console.log(error);
 				});
+
+			// !! можно так же описать через if else, но запись не так читаема.
+
+			// if (response.data.Auth === 'Allow') {
+			// 	this.isAuth = 1;
+			// 	this.loaderVisible = 0;
+			// 	localStorage.username = this.username;
+			// 	this.routeToPage();
+			// } else {
+			// 	this.isAuth = 0;
+			// 	this.isError = 1;
+			// 	this.loaderVisible = 0;
+			// 	this.clearUsersData();
+			// }
 		},
 		ifChangedInput: function() {
 			this.isError === 1 ? (this.isError = false) : 1;
-			console.log(2);
+		},
+		clearUsersData: function() {
+			this.username = empty;
+			this.pass = empty;
+			localStorage.username = empty;
+		},
+		routeToPage: function(pageName = '/success') {
+			setTimeout(() => {
+				this.$router.push(pageName);
+			}, 800);
 		},
 	},
 	computed: {
@@ -230,9 +262,10 @@ $check-length: 36px;
 
 	&__error-text {
 		transition: 0.3s;
-		color: red;
+		color: #f44336;
 		position: relative;
 		bottom: 15px;
+		font-size: 14px;
 	}
 
 	&__submit {
@@ -252,7 +285,6 @@ $check-length: 36px;
 		color: #fff;
 		background-color: #41b883;
 		font-size: 14px;
-		font-weight: 500;
 		line-height: 36px;
 		overflow: hidden;
 		transition: 0.5px;
@@ -341,10 +373,20 @@ $check-length: 36px;
 .error {
 	transition: 0.2s;
 	box-sizing: content-box;
-	border: 1px solid red !important;
+	border: 1px solid #f44336 !important;
+	animation: errorMove 0.25s ease-in-out;
 }
 
 .empty {
-	border: 1px solid red !important;
+	border: 1px solid #f44336 !important;
+}
+
+@keyframes errorMove {
+	25% {
+		transform: translateX(-12px);
+	}
+	50% {
+		transform: translateX(12px);
+	}
 }
 </style>
